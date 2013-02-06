@@ -72,12 +72,14 @@
         //clear the text view and repopulate with the list of field names
         self.textViewOutlet.text = @"";
         [self displayFieldNamesForResponse:_jsonResponse];
+        self.navigationItem.rightBarButtonItem.title = @"Response";
     }
     else{
         _displayingAllObjectMetaData = YES;
         //clear the text view and repopulatea with the list of records
         self.textViewOutlet.text = @"";
-        [self displayRecordsForResponse:_records];
+            self.textViewOutlet.text = [_jsonResponse description];
+        self.navigationItem.rightBarButtonItem.title = @"Fields";
     }
 }
 
