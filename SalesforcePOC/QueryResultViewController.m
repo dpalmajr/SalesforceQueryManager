@@ -9,21 +9,24 @@
 #import "QueryResultViewController.h"
 
 @interface QueryResultViewController ()
+{
+    BOOL _displayingAllObjectMetaData;
+    NSArray *_records;
+    NSDictionary *_jsonResponse;
+}
 
 @end
 
-@implementation QueryResultViewController{
-    BOOL _displayingRecords;
-    NSArray *_records;
-}
+@implementation QueryResultViewController
 
 - (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil
 {
     self = [super initWithNibName:nibNameOrNil bundle:nibBundleOrNil];
     if (self) {
         // Custom initialization
-        _displayingRecords = NO;
+      _displayingAllObjectMetaData = YES;
         _records =[[NSArray alloc]init];
+        _jsonResponse = [[NSDictionary alloc]init];
     }
     
     return self;
@@ -36,15 +39,15 @@
 
     switch(self.queryMode){
         case Query:{
+            [self issueQuery:self.queryString];
+            break;
+        }
+        case Describe:{
             //add barbutton item to toggle between fields and result
             UIBarButtonItem *barButtonItem = [[UIBarButtonItem alloc]initWithTitle:@"Fields" style:UIBarButtonItemStyleBordered target:self action:@selector(barButtonItemPressed:)];
             
             self.navigationItem.rightBarButtonItem = barButtonItem;
 
-            [self issueQuery:self.queryString];
-            break;
-        }
-        case Describe:{
             [self issueRequestForObjectMetaData:self.object];
             break;
         }
@@ -59,18 +62,39 @@
     // Dispose of any resources that can be recreated.
 }
 
+#pragma mark - IBActions
+
+-(void) barButtonItemPressed:(id)sender{
+
+    if (_displayingAllObjectMetaData == YES){
+        _displayingAllObjectMetaData = NO;
+
+        //clear the text view and repopulate with the list of field names
+        self.textViewOutlet.text = @"";
+        [self displayFieldNamesForResponse:_jsonResponse];
+    }
+    else{
+        _displayingAllObjectMetaData = YES;
+        //clear the text view and repopulatea with the list of records
+        self.textViewOutlet.text = @"";
+        [self displayRecordsForResponse:_records];
+    }
+}
+
 #pragma mark - rest request delegate
 
 - (void)request:(SFRestRequest *)request didLoadResponse:(id)jsonResponse{
     switch(self.queryMode){
         case Query:{
-            _records = [jsonResponse objectForKey:@"records"];
-            _displayingRecords = YES;
+            id recordsFromResponse = [jsonResponse objectForKey:@"records"];
+            _records =recordsFromResponse;
             [self displayRecordsForResponse:_records];
             break;
         }
         case Describe:{
+            _jsonResponse = [jsonResponse copy];
             self.textViewOutlet.text = [jsonResponse description];
+            _displayingAllObjectMetaData = YES;
             break;
         }
     }
@@ -94,11 +118,6 @@
 }
 
 - (void)issueRequestForObjectMetaData:(NSString *)objectName {
-    /*Sample object names
-     * Tech_Asset__c
-     * Incident__c
-     * User
-     * */
     
     NSLog(@"Issuing metadata request for object: %@", objectName);
     
@@ -108,29 +127,19 @@
     [[SFRestAPI sharedInstance] send:metaData delegate:self];
 }
 
--(void) barButtonItemPressed:(id)sender{
-    
-    if (_displayingRecords){
-        _displayingRecords = NO;
-        
-        //clear the text view and repopulate with the list of field names
-        self.textViewOutlet.text = @"";
-        [self displayFieldNamesForResponse:_records];
-    }
-    else{
-        _displayingRecords = YES;
-        //clear the text view and repopulatea with the list of records
-        self.textViewOutlet.text = @"";
-        [self displayRecordsForResponse:_records];
-    }
-}
-
--(void) displayFieldNamesForResponse:(NSArray *)records{
+-(void)displayFieldNamesForResponse:(NSDictionary *)response {
     NSMutableString *fieldNames = [[NSMutableString alloc]init];
-    for(NSDictionary *item in records){
-        NSString *objectName =[[item objectForKey:@"name"]description];
-        
-        [fieldNames appendFormat:@"%@\n", objectName];
+
+    id fields = [response objectForKey:@"fields"];
+    
+    if (!fields || ![fields isKindOfClass:[NSArray class]]){
+        return;
+    }
+    
+    for (NSDictionary *currentField in fields){
+        [fieldNames appendFormat:@"Field Name: %@\t Field Type:%@\n",
+         [currentField objectForKey:@"name"],
+         [currentField objectForKey:@"type"]];
     }
     
     self.textViewOutlet.text = fieldNames;
