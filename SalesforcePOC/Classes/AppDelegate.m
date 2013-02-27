@@ -58,6 +58,14 @@ static NSString *const OAuthRedirectURI = @"testsfdc:///mobilesdk/detect/oauth/d
 
 //NOTE be sure to call all super methods you override.
 
+- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+    [super application:application didFinishLaunchingWithOptions:launchOptions];;
+    
+    [[SFRestAPI sharedInstance] setApiVersion:@"v26.0"];
+    
+    return YES;
+    
+}
 
 - (UIViewController*)newRootViewController {
 
