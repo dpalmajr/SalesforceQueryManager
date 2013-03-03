@@ -8,6 +8,7 @@
 
 #import "QueryResultViewController.h"
 
+
 @interface QueryResultViewController ()
 {
     BOOL _displayingAllObjectMetaData;
@@ -17,7 +18,9 @@
 
 @end
 
-@implementation QueryResultViewController
+@implementation QueryResultViewController {
+    UIToolbar *_customToolbar;
+}
 
 - (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil
 {
@@ -32,10 +35,19 @@
     return self;
 }
 
+-(void) viewWillAppear:(BOOL)animated{
+    [super viewWillAppear:animated];
+    [self addToolBar];
+    
+}
 - (void)viewDidLoad
 {
     [super viewDidLoad];
     // Do any additional setup after loading the view from its nib.
+
+    if (!self.queryMode){
+        @throw [NSException exceptionWithName:NSInvalidArgumentException reason:@"Unable to continue with nil queryMode" userInfo:nil];
+    }
 
     switch(self.queryMode){
         case Query:{
@@ -52,8 +64,6 @@
             break;
         }
     }
-    
-    
 }
 
 - (void)didReceiveMemoryWarning
@@ -86,16 +96,17 @@
 #pragma mark - rest request delegate
 
 - (void)request:(SFRestRequest *)request didLoadResponse:(id)jsonResponse{
+    _jsonResponse = [jsonResponse copy];
+
     switch(self.queryMode){
         case Query:{
-            id recordsFromResponse = [jsonResponse objectForKey:@"records"];
+            id recordsFromResponse = [_jsonResponse objectForKey:@"records"];
             _records =recordsFromResponse;
             [self displayRecordsForResponse:_records];
             break;
         }
         case Describe:{
-            _jsonResponse = [jsonResponse copy];
-            self.textViewOutlet.text = [jsonResponse description];
+            self.textViewOutlet.text = [_jsonResponse description];
             _displayingAllObjectMetaData = YES;
             break;
         }
@@ -155,4 +166,61 @@
     self.textViewOutlet.text = recordData;
 }
 
+/*
+* This method will add a tool bar to the queryResultsViewControllers view.
+* */
+- (void)addToolBar {
+    self.hidesBottomBarWhenPushed = NO;
+
+        UIToolbar *customToolbar = [[UIToolbar alloc] init];
+
+    //make sure we don't add this view to it's parent twice
+    [customToolbar removeFromSuperview];
+
+    CGRect toolbarFrame = CGRectMake(0, self.view.bounds.size.height - 44,self.view.bounds.size.width, 44);
+
+    [customToolbar setFrame:toolbarFrame];
+
+    UIBarButtonItem *emailTo = [[UIBarButtonItem alloc]initWithBarButtonSystemItem:UIBarButtonSystemItemCompose target:self action:@selector(emailResults)];
+
+    UIBarButtonItem *flexibleBarButtonItem = [[UIBarButtonItem alloc]initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace target:self action:nil];
+
+    [customToolbar setItems:[NSArray arrayWithObjects:flexibleBarButtonItem, emailTo, nil]];
+
+    [self.view addSubview:customToolbar];
+}
+
+/*
+* This method will present a 'compose email' modally and allow the user to send
+* query results through the native mail app.
+* */
+- (void)emailResults {
+   if ([MFMailComposeViewController canSendMail]){
+       MFMailComposeViewController *mailComposeViewController = [[MFMailComposeViewController alloc] init];
+       mailComposeViewController.mailComposeDelegate = self;
+       
+       switch (self.queryMode){
+           case Query:{
+               [mailComposeViewController setSubject:@"SOQL Query Results"];
+               break;
+           }
+           case Describe:{
+               [mailComposeViewController setSubject:@"Object MetaData Describe Results"];
+               break;
+           }
+       }
+        [mailComposeViewController setMessageBody:[_jsonResponse description] isHTML:NO];
+       
+       [self presentViewController:mailComposeViewController animated:YES completion:nil];
+   }
+}
+
+#pragma mark - MFMailComposeViewControllerDelegate Methods
+
+- (void)mailComposeController:(MFMailComposeViewController *)controller didFinishWithResult:(MFMailComposeResult)result error:(NSError *)error{
+    
+    //regardless of the reason, the MFMailComposeViewController should be dismissed.
+    [controller dismissViewControllerAnimated:YES completion:nil];
+    
+}
 @end

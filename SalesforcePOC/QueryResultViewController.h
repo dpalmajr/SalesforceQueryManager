@@ -8,17 +8,20 @@
 
 #import <UIKit/UIKit.h>
 #import "SFRestAPI.h"
+#import <MessageUI/MessageUI.h>
 
 typedef enum{
     Query,
     Describe
 }QueryMode;
 
-@interface QueryResultViewController : UIViewController<SFRestDelegate>
+@interface QueryResultViewController : UIViewController<SFRestDelegate, MFMailComposeViewControllerDelegate>
 
 @property(nonatomic) QueryMode queryMode;
 @property(copy, nonatomic) NSString *queryString;
 @property(copy, nonatomic) NSString *object;
 
-@property(nonatomic, nonatomic) IBOutlet UITextView *textViewOutlet;
+@property(nonatomic, strong) IBOutlet UITextView *textViewOutlet;
+@property(nonatomic, strong) IBOutlet UIToolbar *toolbarOutlet;
+
 @end
