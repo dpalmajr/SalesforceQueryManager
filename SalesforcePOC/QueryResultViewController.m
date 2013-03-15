@@ -96,6 +96,9 @@
 #pragma mark - rest request delegate
 
 - (void)request:(SFRestRequest *)request didLoadResponse:(id)jsonResponse{
+    
+    NSLog(@"Successful jsonResponse:\n\n%@", [jsonResponse description]);
+    
     _jsonResponse = [jsonResponse copy];
 
     switch(self.queryMode){
@@ -114,6 +117,9 @@
 }
 
 - (void)request:(SFRestRequest *)request didFailLoadWithError:(NSError*)error{
+    
+    NSLog(@"Error during request:%@\n\n Error:\n\n%@",[request description], [error description]);
+    
     self.textViewOutlet.text = [error description];
 }
 
