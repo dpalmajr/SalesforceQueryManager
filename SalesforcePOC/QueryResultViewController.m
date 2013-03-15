@@ -25,8 +25,10 @@
     if (self) {
         // Custom initialization
       _displayingAllObjectMetaData = YES;
-        _records =[[NSArray alloc]init];
-        _jsonResponse = [[NSDictionary alloc]init];
+      _records =[[NSArray alloc]init];
+      _jsonResponse = [[NSDictionary alloc]init];
+        
+       
     }
     
     return self;
@@ -86,6 +88,10 @@
 #pragma mark - rest request delegate
 
 - (void)request:(SFRestRequest *)request didLoadResponse:(id)jsonResponse{
+    
+    //log the incoming json response
+    NSLog(@"Incoming json response:\n\n%@", [jsonResponse description]);
+    
     switch(self.queryMode){
         case Query:{
             id recordsFromResponse = [jsonResponse objectForKey:@"records"];
@@ -103,6 +109,9 @@
 }
 
 - (void)request:(SFRestRequest *)request didFailLoadWithError:(NSError*)error{
+    
+    NSLog(@"Error occured.\n\n%@", [error description]);
+    
     self.textViewOutlet.text = [error description];
 }
 
